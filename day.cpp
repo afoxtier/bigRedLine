@@ -1,4 +1,5 @@
 //day.cpp
+//by Aidan Fox-Tierney
 
 #include "framework.h"
 #include "day.h"

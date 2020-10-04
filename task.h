@@ -1,4 +1,5 @@
 //task.h outlines the task class
+//by Aidan Fox-Tierney
 
 #pragma once
 

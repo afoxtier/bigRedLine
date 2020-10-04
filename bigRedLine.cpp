@@ -1,5 +1,5 @@
 // bigRedLine.cpp : Defines the entry point for the application.
-//
+//by Aidan Fox-Tierney based on vidual Studio's GUI template
 
 #include "framework.h"
 #include "CommCtrl.h"

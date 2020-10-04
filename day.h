@@ -1,4 +1,5 @@
 //day.h defines the day class
+//by Aidan Fox-Tierney
 
 #pragma once
 
