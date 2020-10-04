@@ -2,6 +2,7 @@
 //
 
 #include "framework.h"
+#include "CommCtrl.h"
 #include "bigRedLine.h"
 #include "day.h"
 #include <string>
@@ -13,10 +14,13 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
-Day testDay(9, 15, 1997); //FIXME Test day
-std::string testName = "Birthday";
-std::string testDescription = "My birthday!";
-Task testTask(testName, testDescription, 0, 1, 23);
+//My fancy-shmancy schedule holding bits and some functions to help them interact
+Day** days;
+int numDays = 0;
+
+bool addDay(HWND hWnd);
+bool getDate(int& month, int& day, int& year, HWND hWnd);
+bool sameDate(int& month, int& day, int& year);
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -33,7 +37,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: Place code here.
-    testDay.addTask(testTask);
+    days = new Day * ();
+    days[0] = new Day(10, 3, 2020);
+    Task taskTest(std::string("HackUC"), std::string("Stay up all night scratching your head."), 0, 12, 24);
+    days[0]->addTask(taskTest);
 
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -114,6 +121,16 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         return FALSE;
    }
 
+   HWND addDayBtn = CreateWindow(L"BUTTON", L"Add Day",
+       WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+       0, 0, 70,20, hWnd, (HMENU)IDC_DAYADD,
+       (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+   if (!addDayBtn)
+   {
+       MessageBox(NULL, _T("Button failed to open!"), _T("Big Red Line Error"), NULL);
+       return FALSE;
+   }
+
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -146,6 +163,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
+            case IDC_DAYADD:
+                if (!addDay(hWnd))
+                {
+                    MessageBox(NULL, _T("Day creation failed!"), _T("Add Day Error"), NULL);
+                    MessageBeep(MB_ICONINFORMATION);
+                }
+                break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
@@ -159,14 +183,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             WCHAR dayInfo[100];
             WCHAR taskInfo[200];
 
-            testDay.getTask(&taskInfo[0], 0);
+            days[0]->getTask(&taskInfo[0], 0);
 
             swprintf_s(dayInfo, 100, L"%d/%d/%d", 
-                testDay.getMonth(), testDay.getDay(), testDay.getYear());
+                days[0]->getMonth(), days[0]->getDay(), days[0]->getYear());
 
-            TextOut(hdc, 0, 0, dayInfo, _tcslen(dayInfo));
+            TextOut(hdc, 0, 30, dayInfo, _tcslen(dayInfo));
 
-            TextOut(hdc, 0, 30, taskInfo, _tcslen(taskInfo));
+            TextOut(hdc, 0, 60, taskInfo, _tcslen(taskInfo));
 
             EndPaint(hWnd, &ps);
         }
@@ -179,6 +203,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return 0;
 }
+
+
+//Message handler for calandar dialog box
+bool CALLBACK Calendar(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+    case WM_COMMAND:
+        return  true;
+        break;
+    }
+    return  true;
+}
+
 
 // Message handler for about box.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -199,3 +237,76 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+
+
+//Prompts user to add a day to the list and returns false if error
+bool addDay(HWND hWnd)
+{
+    int tempMonth, tempDay, tempYear;
+    
+    if (!getDate(tempMonth, tempDay, tempYear, hWnd))
+    {
+        return false;
+    }//if date invalid
+    else if (sameDate(tempMonth, tempDay, tempYear))
+    {
+        return false;
+    }//if day already made
+
+    days[numDays] = new Day(tempMonth, tempDay, tempYear);
+    numDays++;
+} //addDay()
+
+
+bool getDate(int& month, int& day, int& year, HWND hWnd)
+{
+    RECT calRect;
+    HWND dialogWindow = NULL;
+    HWND CalendarWindow = NULL;
+
+    //Create calendar to pick date from
+    //make dialog box first
+    dialogWindow = CreateDialog(hInst, MAKEINTRESOURCE(IDD_DATE_PICKER), hWnd, (DLGPROC)Calendar);
+    if (!dialogWindow)
+    {
+        MessageBox(NULL, _T("Calendar's dialog box failed to be created!"), _T("Dialog Window Error"), NULL);
+        return false;
+    }
+
+    //then make actual calendar
+    CalendarWindow = CreateWindowEx(0, MONTHCAL_CLASS, L"", WS_BORDER | WS_CHILD | WS_VISIBLE | MCS_DAYSTATE,
+        0, 0, 0, 0, dialogWindow, (HMENU)IDC_MONTHCAL, hInst, NULL);
+    if (!CalendarWindow)
+    {
+        MessageBox(NULL, _T("Calendar's calendar failed to be created!"), _T("Calendar Window Error"), NULL);
+        return false;
+    }
+
+    //get min size and resize
+    MonthCal_GetMinReqRect(CalendarWindow, &calRect);
+    SetWindowPos(CalendarWindow, NULL, 0, 0, calRect.right, calRect.bottom, SWP_NOZORDER);
+
+    ShowWindow(dialogWindow, SW_SHOW);
+
+    return true;
+} //getDate()
+
+
+//Checks to see if there would be a duplicate day
+bool sameDate(int& month, int& day, int& year)
+{
+    if (numDays > 0)
+    {
+        for (int i = 0; i < numDays; i++)
+        {
+            if (days[i]->getMonth() == month &&
+                days[i]->getDay() == day &&
+                days[i]->getYear() == year)
+            {
+                return true;
+            } //if dates the same
+        } //for all days
+    } //if there are days
+    
+    return false;
+} //sameDate()

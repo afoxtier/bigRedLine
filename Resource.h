@@ -5,6 +5,7 @@
 #define IDS_APP_TITLE			103
 
 #define IDR_MAINFRAME			128
+#define	IDD_DATE_PICKER			112
 #define IDD_BIGREDLINE_DIALOG	102
 #define IDD_ABOUTBOX			103
 #define IDM_ABOUT				104
@@ -12,6 +13,8 @@
 #define IDI_BIGREDLINE			107
 #define IDI_SMALL				108
 #define IDC_BIGREDLINE			109
+#define IDC_DAYADD				110
+#define IDC_MONTHCAL			111
 #define IDC_MYICON				2
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1
